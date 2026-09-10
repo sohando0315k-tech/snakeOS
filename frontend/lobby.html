@@ -626,13 +626,17 @@
 
         setTimeout(slither, 500);
 
-        // 3. API Base Resolution (supports port 3000, Live Server, and file://)
-        const API_BASE =
-          window.location.protocol === "file:"
-            ? "http://localhost:3000"
-            : window.location.origin.includes(":3000")
-            ? ""
-            : "http://localhost:3000";
+        // 3. API Base Resolution (auto-detects Vercel production, localhost:3000, Live Server, and file://)
+        const isHostedOnline =
+          window.location.protocol.startsWith("http") &&
+          !window.location.hostname.includes("localhost") &&
+          !window.location.hostname.includes("127.0.0.1");
+
+        const API_BASE = isHostedOnline
+          ? ""
+          : window.location.origin.includes(":3000")
+          ? ""
+          : "http://localhost:3000";
 
         const lobbyPlayerRank = document.getElementById("lobbyPlayerRank");
         const statusDot = document.getElementById("statusDot");

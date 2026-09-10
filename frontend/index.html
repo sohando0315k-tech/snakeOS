@@ -1118,13 +1118,17 @@
     <script src="api.js"></script>
     <script src="game.js"></script>
     <script>
-      // Backend API Configuration (works on port 3000, Live Server, and file://)
-      const API_BASE =
-        window.location.protocol === "file:"
-          ? "http://localhost:3000"
-          : window.location.origin.includes(":3000")
-          ? ""
-          : "http://localhost:3000";
+      // Backend API Configuration (auto-detects Vercel production, localhost:3000, Live Server, and file://)
+      const isHostedOnline =
+        window.location.protocol.startsWith("http") &&
+        !window.location.hostname.includes("localhost") &&
+        !window.location.hostname.includes("127.0.0.1");
+
+      const API_BASE = isHostedOnline
+        ? ""
+        : window.location.origin.includes(":3000")
+        ? ""
+        : "http://localhost:3000";
 
       function syncPlayerProfileUI() {
         const username =
