@@ -1,8 +1,12 @@
 {
   "version": 2,
+  "redirects": [
+    { "source": "/", "destination": "/lobby.html", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/backend/server.js" },
-    { "source": "/", "destination": "/frontend/lobby.html" },
+    { "source": "/lobby.html", "destination": "/frontend/lobby.html" },
+    { "source": "/index.html", "destination": "/frontend/index.html" },
     { "source": "/(.*)", "destination": "/frontend/$1" }
   ]
 }

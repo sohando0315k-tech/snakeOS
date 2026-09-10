@@ -63,15 +63,15 @@ function getMemoryPlayerRank(highScore) {
 app.use(cors());
 app.use(express.json());
 
-// Serve static frontend files (prefers 'frontend', falls back to 'snake')
-const frontendDir = path.join(__dirname, '../frontend');
-app.use(express.static(frontendDir));
-app.use(express.static(path.join(__dirname, '../snake')));
-
-// Redirect root to lobby
+// 1. Explicitly redirect root / directly to /lobby.html
 app.get('/', (req, res) => {
   res.redirect('/lobby.html');
 });
+
+// 2. Serve static frontend files (without auto-index so root redirect works)
+const frontendDir = path.join(__dirname, '../frontend');
+app.use(express.static(frontendDir, { index: false }));
+app.use(express.static(path.join(__dirname, '../snake'), { index: false }));
 
 // =============================================================================
 // API ROUTES
