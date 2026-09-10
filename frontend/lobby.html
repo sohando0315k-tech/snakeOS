@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SnakeOS - Game Lobby</title>
+    <!-- Supabase SDK removed for frontend-only project -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-secondary: #0d1117;
+        --text-primary: #f9fafb;
+        --text-muted: #9ca3af;
+        --radius-md: 12px;
+        --radius-sm: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        font-family: "JetBrains Mono", monospace;
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+      }
+
+      .lobby-container {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-columns: 3fr 2fr;
+        padding: 40px;
+        gap: 40px;
+        background: transparent;
+        transition: opacity 0.5s ease;
+      }
+
+      .lobby-left {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        position: relative;
+      }
+
+      .lobby-right {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        z-index: 3;
+      }
+
+      .lobby-card {
+        background: #060912;
+        border: none;
+        border-radius: var(--radius-md);
+        box-shadow: none;
+        padding: 24px;
+        backdrop-filter: blur(10px);
+        position: relative;
+      }
+
+      .player-info {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 1.1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        border: none;
+        z-index: 3;
+      }
+
+      .player-info-text {
+        letter-spacing: 0.05em;
+      }
+
+      .grid-title-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        padding: 5px;
+        z-index: 3;
+      }
+
+      .snake-grid {
+        display: grid;
+        grid-template-columns: repeat(51, minmax(0, 1fr));
+        grid-template-rows: repeat(11, minmax(0, 1fr));
+        width: 100%;
+        aspect-ratio: 51 / 11;
+        border-top: none;
+        border-left: none;
+      }
+
+      .snake-grid-cell {
+        border-right: none;
+        border-bottom: none;
+        background: transparent;
+        aspect-ratio: 1;
+        position: relative;
+        transition: background-color 0.1s;
+      }
+
+      .text-S1 {
+        background-color: #ef4444;
+      }
+      .text-N {
+        background-color: #f97316;
+      }
+      .text-A {
+        background-color: #eab308;
+      }
+      .text-K {
+        background-color: #22c55e;
+      }
+      .text-E {
+        background-color: #3b82f6;
+      }
+      .text-O {
+        background-color: #00f2fe;
+      }
+      .text-S2 {
+        background-color: #ec4899;
+      }
+
+      /* Static Scenery Setup */
+      .cell-apple {
+        background: #ef4444;
+        border-radius: 50%;
+        box-shadow: none;
+        transform: scale(0.85); /* Faux-padding buffer */
+      }
+      .cell-poison {
+        background: #6d28d9;
+        border-radius: 50%;
+        box-shadow: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: clamp(6px, 1.2vw, 15px); /* Skeleton scaling */
+        transform: scale(0.85);
+      }
+      .cell-poison::after {
+        content: "💀";
+      }
+      .cell-wall {
+        background: #d97706;
+        border: none;
+        box-shadow: none;
+        transform: scale(0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .cell-wall::after {
+        content: "✕";
+        color: rgba(255, 251, 235, 0.9);
+        font-weight: bold;
+        font-size: 10px;
+      }
+
+      .login-form {
+        z-index: 1;
+      }
+
+      .login-form-inner {
+        display: flex;
+        gap: 15px;
+      }
+
+      .lobby-input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.05);
+        border: none;
+        border-radius: var(--radius-sm);
+        padding: 18px;
+        color: #fff;
+        font-family: inherit;
+        font-size: 1.2rem;
+        outline: none;
+        transition: all 0.3s;
+        box-shadow: none;
+      }
+
+      .lobby-input:focus {
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: none;
+      }
+
+      .lobby-btn {
+        background: #1f2937;
+        border: none;
+        color: #f3f4f6;
+        font-family: inherit;
+        font-size: 1.1rem;
+        font-weight: 700;
+        padding: 0 30px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background 0.3s;
+        text-transform: uppercase;
+        box-shadow: none;
+      }
+
+      .lobby-btn:hover {
+        background: #374151;
+        box-shadow: none;
+      }
+
+      /* Right Column */
+      .leaderboard-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .leaderboard-container h2 {
+        font-size: 2rem;
+        color: #fff;
+        margin-bottom: 5px;
+      }
+
+      .leaderboard-container p {
+        color: var(--text-muted);
+        margin-bottom: 30px;
+        font-size: 1rem;
+        text-transform: uppercase;
+      }
+
+      .leaderboard-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+      }
+
+      .refresh-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid #374151;
+        color: #9ca3af;
+        border-radius: var(--radius-sm);
+        padding: 8px 14px;
+        font-family: inherit;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .refresh-btn:hover {
+        border-color: #00ff88;
+        color: #00ff88;
+        background: rgba(0, 255, 136, 0.08);
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #22c55e;
+        box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+      }
+
+      .status-dot.warning {
+        background-color: #eab308;
+        box-shadow: 0 0 6px rgba(234, 179, 8, 0.6);
+      }
+
+      .status-dot.error {
+        background-color: #ef4444;
+        box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+      }
+
+      .leaderboard-table-wrap {
+        overflow-y: auto;
+        max-height: calc(100vh - 220px);
+        padding-right: 4px;
+      }
+
+      .leaderboard-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .leaderboard-table th {
+        text-align: left;
+        padding: 12px 10px;
+        border-bottom: 2px solid #1f2937;
+        color: #9ca3af;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        position: sticky;
+        top: 0;
+        background: #060912;
+        z-index: 2;
+      }
+
+      .leaderboard-table th:last-child {
+        text-align: right;
+      }
+
+      .leaderboard-table td {
+        padding: 14px 10px;
+        border-bottom: 1px solid #1f2937;
+        font-size: 1.05rem;
+        transition: background 0.15s ease;
+      }
+
+      .leaderboard-table td:last-child {
+        text-align: right;
+        font-weight: 700;
+        color: #00ff88;
+        font-size: 1.15rem;
+      }
+
+      .leaderboard-table tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .active-player-row td {
+        background: rgba(0, 255, 136, 0.08) !important;
+        border-top: 1px solid rgba(0, 255, 136, 0.3);
+        border-bottom: 1px solid rgba(0, 255, 136, 0.3) !important;
+        color: #fff;
+        font-weight: 700;
+      }
+
+      .rank-medal {
+        display: inline-block;
+        min-width: 26px;
+        text-align: center;
+        font-weight: 700;
+      }
+
+      .rank-1 { color: #ffd700; text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+      .rank-2 { color: #e2e8f0; text-shadow: 0 0 8px rgba(226, 232, 240, 0.4); }
+      .rank-3 { color: #f59e0b; text-shadow: 0 0 8px rgba(245, 158, 11, 0.4); }
+
+      @media (max-width: 1000px) {
+        .lobby-container {
+          grid-template-columns: 1fr;
+          overflow-y: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="lobby-container" id="lobbyContainer">
+      <!-- Left Column -->
+      <div class="lobby-left">
+        <!-- Player Info -->
+        <div class="lobby-card player-info">
+          <span class="player-info-text"
+            >USER STATUS: [Player: <span id="lobbyPlayerName" style="color: #00ff88;">Guest</span>] |
+            BEST: <span id="lobbyPersonalBest" style="color: #ffd700;">0</span> |
+            RANK: <span id="lobbyPlayerRank" style="color: #38bdf8;">--</span></span
+          >
+          <div id="connectionStatus" class="status-pill">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="connectionText">Checking DB...</span>
+          </div>
+        </div>
+
+        <!-- Grid Title -->
+        <div class="grid-title-container">
+          <div class="snake-grid" id="snakeGrid">
+            <!-- JS fills this -->
+          </div>
+        </div>
+
+        <!-- Login Form -->
+        <div class="lobby-card login-form">
+          <div class="login-form-inner">
+            <input
+              type="text"
+              id="usernameInput"
+              class="lobby-input"
+              placeholder="Enter Username to Play"
+              maxlength="20"
+              autocomplete="off"
+            />
+            <button id="loginBtn" class="lobby-btn">Play Game ➔</button>
+          </div>
+          <div id="loginMessage" style="margin-top: 10px; font-size: 0.85rem; min-height: 1.2em;"></div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="lobby-right">
+        <div class="lobby-card leaderboard-container">
+          <div class="leaderboard-header-row">
+            <div>
+              <h2>Global Leaderboard</h2>
+              <p>Top SnakeOS Players • Worldwide</p>
+            </div>
+            <button id="refreshBtn" class="refresh-btn" title="Refresh live leaderboard">
+              <span>↻</span> Refresh
+            </button>
+          </div>
+
+          <div class="leaderboard-table-wrap">
+            <table class="leaderboard-table">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">Rank</th>
+                  <th>Player</th>
+                  <th>High Score</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboardBody">
+                <tr>
+                  <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                    Loading leaderboard...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="game.js"></script>
+    <script>
+      // Backend removed: Supabase SDK and credentials stripped.
+      const supabase = null;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const lobbyContainer = document.getElementById("lobbyContainer");
+        const loginBtn = document.getElementById("loginBtn");
+        const usernameInput = document.getElementById("usernameInput");
+        const lobbyPlayerName = document.getElementById("lobbyPlayerName");
+        const snakeGrid = document.getElementById("snakeGrid");
+        const leaderboardBody = document.getElementById("leaderboardBody");
+
+        // 2. Build Text Art Grid
+        const textArt = [
+          "                                                   ",
+          "                                                   ",
+          "  XXXXX  X   X   XXX   X   X  XXXXX   XXX   XXXXX  ",
+          "  X      XX  X  X   X  X  X   X      X   X  X      ",
+          "  X      XX  X  X   X  X X    X      X   X  X      ",
+          "  XXXXX  X X X  XXXXX  XX     XXXX   X   X  XXXXX  ",
+          "      X  X  XX  X   X  X X    X      X   X      X  ",
+          "      X  X  XX  X   X  X  X   X      X   X      X  ",
+          "  XXXXX  X   X  X   X  X   X  XXXXX   XXX   XXXXX  ",
+          "                                                   ",
+          "                                                   ",
+        ];
+
+        const cellsArray = [];
+        for (let r = 0; r < 11; r++) {
+          for (let c = 0; c < 51; c++) {
+            const char = textArt[r][c];
+            const cell = document.createElement("div");
+            let classes = "snake-grid-cell";
+
+            if (char === "X") {
+              classes += " text";
+              if (c >= 2 && c <= 6) classes += " text-S1";
+              else if (c >= 9 && c <= 13) classes += " text-N";
+              else if (c >= 16 && c <= 20) classes += " text-A";
+              else if (c >= 23 && c <= 27) classes += " text-K";
+              else if (c >= 30 && c <= 34) classes += " text-E";
+              else if (c >= 37 && c <= 41) classes += " text-O";
+              else if (c >= 44 && c <= 48) classes += " text-S2";
+            } else {
+              // Sprinkle structural static elements strategically around grids
+              if (
+                (r === 1 && c === 4) ||
+                (r === 9 && c === 18) ||
+                (r === 1 && c === 48)
+              ) {
+                classes += " cell-wall";
+              } else if (
+                (r === 6 && c === 1) ||
+                (r === 1 && c === 28) ||
+                (r === 9 && c === 46)
+              ) {
+                classes += " cell-apple";
+              } else if (
+                (r === 1 && c === 13) ||
+                (r === 8 && c === 7) ||
+                (r === 1 && c === 34) ||
+                (r === 9 && c === 31)
+              ) {
+                classes += " cell-poison";
+              }
+            }
+
+            cell.className = classes;
+            snakeGrid.appendChild(cell);
+            cellsArray.push(cell);
+          }
+        }
+
+        // Snake Path Generator
+        let snakePath = [];
+        function addSeq(x1, y1, x2, y2, isAbove) {
+          let stepX = x1 < x2 ? 1 : x1 > x2 ? -1 : 0;
+          let stepY = y1 < y2 ? 1 : y1 > y2 ? -1 : 0;
+          let x = x1,
+            y = y1;
+          while (true) {
+            if (
+              snakePath.length === 0 ||
+              snakePath[snakePath.length - 1].x !== x ||
+              snakePath[snakePath.length - 1].y !== y
+            ) {
+              snakePath.push({ x, y, isAbove });
+            }
+            if (x === x2 && y === y2) break;
+            x += stepX;
+            y += stepY;
+          }
+        }
+
+        // Hardcoded elegant weave path (translated scales)
+        addSeq(0, 10, 4, 10, true); // Approach S
+        addSeq(4, 10, 4, 3, true); // Up S center
+        addSeq(4, 3, 7, 3, true); // Over to gap
+        addSeq(7, 3, 7, 10, false); // Down gap
+        addSeq(7, 10, 11, 10, false); // Right below N
+        addSeq(11, 10, 11, 2, false); // Up N center
+        addSeq(11, 2, 14, 2, false); // Over to gap
+        addSeq(14, 2, 14, 6, true); // Down to A
+        addSeq(14, 6, 18, 6, true); // Right A middle
+        addSeq(18, 6, 18, 2, true); // Up A center
+        addSeq(18, 2, 21, 2, true); // Over to gap
+        addSeq(21, 2, 21, 9, false); // Down gap
+        addSeq(21, 9, 25, 9, false); // Right to K base
+        addSeq(25, 9, 25, 4, false); // Up K center
+        addSeq(25, 4, 28, 4, false); // Over to gap
+        addSeq(28, 4, 28, 10, true); // Down gap
+        addSeq(28, 10, 32, 10, true); // Right E bottom
+        addSeq(32, 10, 32, 5, true); // Up E center
+        addSeq(32, 5, 39, 5, false); // Enter O
+        addSeq(39, 5, 39, 3, true); // Up inside O hollow
+        addSeq(39, 3, 40, 3, true); // Right inside hollow
+        addSeq(40, 3, 40, 7, true); // Down inside hollow
+        addSeq(40, 7, 38, 7, true); // Left inside hollow
+        addSeq(38, 7, 38, 5, true); // Up
+        addSeq(38, 5, 39, 5, true); // Return to center resting spot
+
+        let body = [];
+        let headIndex = 0;
+        let length = 8;
+
+        function drawGrid() {
+          // Clear previous segments
+          cellsArray.forEach((c) => {
+            c.style.backgroundColor = "";
+            c.style.boxShadow = "";
+            c.style.zIndex = "";
+          });
+
+          // Loop over current snake segments and apply styles
+          for (let i = 0; i < body.length; i++) {
+            let p = snakePath[body[i]];
+            if (!p) continue;
+            let index = p.y * 51 + p.x;
+            let cell = cellsArray[index];
+            if (!cell) continue;
+
+            let isHead = i === body.length - 1;
+
+            // Render only if ABOVE, OR if cell is an empty grid space
+            // Hides the snake segment visually if it hits solid text
+            if (p.isAbove || !cell.classList.contains("text")) {
+              cell.style.backgroundColor = "#00ff00"; // Pure flat green
+              cell.style.boxShadow = "none"; // Strips the neon aesthetic
+              if (p.isAbove) cell.style.zIndex = "10";
+            }
+          }
+        }
+
+        function slither() {
+          if (headIndex < snakePath.length + length) {
+            if (headIndex < snakePath.length) {
+              body.push(headIndex);
+            }
+            if (body.length > length || headIndex >= snakePath.length) {
+              body.shift();
+            }
+            headIndex++;
+            drawGrid();
+            setTimeout(slither, 60);
+          } else {
+            // Snake cleanly slithers OFF the text and then restarts its loop
+            setTimeout(() => {
+              body = [];
+              headIndex = 0;
+              slither();
+            }, 2500);
+          }
+        }
+
+        setTimeout(slither, 500);
+
+        // 3. API Base Resolution (supports port 3000, Live Server, and file://)
+        const API_BASE =
+          window.location.protocol === "file:"
+            ? "http://localhost:3000"
+            : window.location.origin.includes(":3000")
+            ? ""
+            : "http://localhost:3000";
+
+        const lobbyPlayerRank = document.getElementById("lobbyPlayerRank");
+        const statusDot = document.getElementById("statusDot");
+        const connectionText = document.getElementById("connectionText");
+        const loginMessage = document.getElementById("loginMessage");
+        const refreshBtn = document.getElementById("refreshBtn");
+
+        // Helper to format rank badge
+        function formatRank(rank) {
+          if (rank === 1) return '<span class="rank-medal rank-1">🥇 1</span>';
+          if (rank === 2) return '<span class="rank-medal rank-2">🥈 2</span>';
+          if (rank === 3) return '<span class="rank-medal rank-3">🥉 3</span>';
+          return `<span class="rank-medal" style="color:#9ca3af;">#${rank}</span>`;
+        }
+
+        // Check Server & Supabase Connection Health
+        async function checkConnection() {
+          try {
+            const res = await fetch(`${API_BASE}/api/health`, { method: "GET" });
+            if (!res.ok) throw new Error("Health check failed");
+            const data = await res.json();
+
+            if (data.isSupabaseConfigured) {
+              statusDot.className = "status-dot";
+              connectionText.textContent = "Supabase Live";
+            } else {
+              statusDot.className = "status-dot warning";
+              connectionText.textContent = "Local Server";
+            }
+          } catch (err) {
+            statusDot.className = "status-dot error";
+            connectionText.textContent = "Offline Mode";
+          }
+        }
+
+        // Initialize active player UI from localStorage
+        function updatePlayerCardUI(username, highScore, rank) {
+          lobbyPlayerName.textContent = username || "Guest";
+          lobbyPersonalBest.textContent = highScore ?? 0;
+          if (rank) {
+            lobbyPlayerRank.textContent = typeof rank === "number" ? "#" + rank : rank;
+          }
+        }
+
+        const storedUsername = localStorage.getItem("snakeUsername");
+        const storedScore = parseInt(localStorage.getItem("snakeHighScore") || "0", 10);
+        const storedRank = localStorage.getItem("snakePlayerRank");
+
+        if (storedUsername) {
+          usernameInput.value = storedUsername;
+          updatePlayerCardUI(storedUsername, storedScore, storedRank);
+        }
+
+        // 4. Fetch Live Leaderboard Data
+        async function fetchLeaderboard() {
+          try {
+            if (refreshBtn) refreshBtn.classList.add("loading");
+            const res = await fetch(`${API_BASE}/api/leaderboard?limit=25`);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            const json = await res.json();
+
+            leaderboardBody.innerHTML = "";
+
+            const list = json.leaderboard || [];
+            const currentActiveUser = (
+              window.activePlayer?.username ||
+              localStorage.getItem("snakeUsername") ||
+              ""
+            ).toLowerCase();
+
+            if (list.length === 0) {
+              leaderboardBody.innerHTML =
+                '<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px 0;">No scores recorded yet. Be the first!</td></tr>';
+              return;
+            }
+
+            let foundActiveInTop = false;
+
+            list.forEach((item) => {
+              const tr = document.createElement("tr");
+              const isCurrent =
+                currentActiveUser &&
+                item.username.toLowerCase() === currentActiveUser;
+
+              if (isCurrent) {
+                tr.classList.add("active-player-row");
+                foundActiveInTop = true;
+                updatePlayerCardUI(item.username, item.highScore, item.rank);
+                localStorage.setItem("snakePlayerRank", item.rank.toString());
+              }
+
+              tr.innerHTML = `
+                <td>${formatRank(item.rank)}</td>
+                <td style="font-weight: ${isCurrent ? "bold" : "normal"};">
+                  ${item.username} ${isCurrent ? '<span style="font-size:0.8rem; color:#00ff88;">(You)</span>' : ""}
+                </td>
+                <td>${Number(item.highScore).toLocaleString()}</td>
+              `;
+              leaderboardBody.appendChild(tr);
+            });
+
+            // If active user is not in the top list, fetch their specific rank
+            if (currentActiveUser && !foundActiveInTop) {
+              try {
+                const pRes = await fetch(`${API_BASE}/api/player/${encodeURIComponent(currentActiveUser)}`);
+                if (pRes.ok) {
+                  const pJson = await pRes.json();
+                  if (pJson.player) {
+                    updatePlayerCardUI(pJson.player.username, pJson.player.highScore, pJson.player.rank);
+                    localStorage.setItem("snakePlayerRank", pJson.player.rank.toString());
+                  }
+                }
+              } catch (_) {}
+            }
+          } catch (error) {
+            console.warn("Leaderboard fetch error:", error);
+            // Fallback to local active player if available
+            leaderboardBody.innerHTML = "";
+            const ap = window.activePlayer;
+            if (ap && ap.username) {
+              const tr = document.createElement("tr");
+              tr.classList.add("active-player-row");
+              tr.innerHTML = `
+                <td><span class="rank-medal" style="color:#00ff88;">•</span></td>
+                <td>${ap.username} <span style="font-size:0.8rem; color:#00ff88;">(Local)</span></td>
+                <td>${ap.highScore || 0}</td>
+              `;
+              leaderboardBody.appendChild(tr);
+            } else {
+              leaderboardBody.innerHTML =
+                '<tr><td colspan="3" style="text-align: center; color: #9ca3af; padding: 30px 0;">Connect server to view global leaderboard.<br><small style="color:#6b7280;">Run "npm start" in project folder</small></td></tr>';
+            }
+          } finally {
+            if (refreshBtn) refreshBtn.classList.remove("loading");
+          }
+        }
+
+        // Refresh button click handler
+        if (refreshBtn) {
+          refreshBtn.addEventListener("click", () => {
+            fetchLeaderboard();
+            checkConnection();
+          });
+        }
+
+        // Initial connection check and leaderboard load
+        checkConnection();
+        fetchLeaderboard();
+
+        // Auto-refresh leaderboard every 20 seconds
+        setInterval(fetchLeaderboard, 20000);
+
+        // 5. Login Logic
+        async function handleLogin(event) {
+          if (event && event.preventDefault) event.preventDefault();
+
+          const inputName = usernameInput.value.trim();
+          if (!inputName) {
+            loginMessage.style.color = "#ef4444";
+            loginMessage.textContent = "Please enter a username to play.";
+            usernameInput.focus();
+            return;
+          }
+
+          if (inputName.length < 2 || inputName.length > 25) {
+            loginMessage.style.color = "#ef4444";
+            loginMessage.textContent = "Username must be between 2 and 25 characters.";
+            return;
+          }
+
+          try {
+            loginBtn.disabled = true;
+            loginBtn.textContent = "Entering...";
+            loginMessage.style.color = "#00ff88";
+            loginMessage.textContent = "Authenticating profile...";
+
+            // Send login request to Express server
+            const res = await fetch(`${API_BASE}/api/login`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username: inputName }),
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              if (data.success && data.player) {
+                const player = data.player;
+                window.updateActivePlayer(player.id, player.username, player.highScore);
+                if (player.rank) {
+                  localStorage.setItem("snakePlayerRank", player.rank.toString());
+                }
+                updatePlayerCardUI(player.username, player.highScore, player.rank);
+
+                loginMessage.textContent = "Success! Launching SnakeOS...";
+                setTimeout(() => {
+                  window.location.href = "index.html";
+                }, 400);
+                return;
+              }
+            }
+
+            throw new Error("Server returned unsuccessful login response");
+          } catch (error) {
+            console.warn("Online login failed, falling back to local storage:", error);
+            // Offline fallback so players can always play
+            let highScore =
+              parseInt(localStorage.getItem("snakeHighScore") || "0", 10) || 0;
+            let playerId = "local-" + Date.now();
+
+            if (
+              window.activePlayer &&
+              window.activePlayer.username === inputName
+            ) {
+              highScore = window.activePlayer.highScore;
+              playerId = window.activePlayer.id || playerId;
+            }
+
+            window.updateActivePlayer(playerId, inputName, highScore);
+            updatePlayerCardUI(inputName, highScore, "--");
+
+            loginMessage.style.color = "#eab308";
+            loginMessage.textContent = "Starting in offline mode...";
+            setTimeout(() => {
+              window.location.href = "index.html";
+            }, 500);
+          } finally {
+            loginBtn.disabled = false;
+            loginBtn.textContent = "Play Game ➔";
+          }
+        }
+
+        loginBtn.addEventListener("click", handleLogin);
+
+        usernameInput.addEventListener("keyup", (e) => {
+          if (e.key === "Enter") {
+            handleLogin(e);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
