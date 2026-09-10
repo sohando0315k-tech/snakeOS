@@ -7,6 +7,10 @@
     { "source": "/api/(.*)", "destination": "/backend/server.js" },
     { "source": "/lobby.html", "destination": "/frontend/lobby.html" },
     { "source": "/index.html", "destination": "/frontend/index.html" },
-    { "source": "/(.*)", "destination": "/frontend/$1" }
+    { "source": "/lobby.css", "destination": "/frontend/lobby.css" },
+    { "source": "/lobby.js", "destination": "/frontend/lobby.js" },
+    { "source": "/api.js", "destination": "/frontend/api.js" },
+    { "source": "/game.js", "destination": "/frontend/game.js" },
+    { "source": "/custom-rules.js", "destination": "/frontend/custom-rules.js" }
   ]
 }

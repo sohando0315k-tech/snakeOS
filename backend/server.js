@@ -60,17 +60,23 @@ function getMemoryPlayerRank(highScore) {
 }
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+// Handle potential /frontend/ prefix from Vercel rewrites gracefully
+app.use((req, res, next) => {
+  if (req.url.startsWith('/frontend/frontend/')) {
+    return res.redirect(req.url.replace('/frontend/frontend/', '/'));
+  }
+  next();
+});
 
 // 1. Explicitly redirect root / directly to /lobby.html
 app.get('/', (req, res) => {
   res.redirect('/lobby.html');
 });
 
-// 2. Serve static frontend files (without auto-index so root redirect works)
+// 2. Serve static frontend files
 const frontendDir = path.join(__dirname, '../frontend');
 app.use(express.static(frontendDir, { index: false }));
+app.use('/frontend', express.static(frontendDir, { index: false }));
 app.use(express.static(path.join(__dirname, '../snake'), { index: false }));
 
 // =============================================================================
