@@ -1153,6 +1153,28 @@
       window.addEventListener("DOMContentLoaded", syncPlayerProfileUI);
       syncPlayerProfileUI();
 
+      // Automatically sync latest stats from Supabase/Server on load
+      const currentSyncUser =
+        window.activePlayer?.username || localStorage.getItem("snakeUsername");
+      if (currentSyncUser && currentSyncUser !== "Guest") {
+        fetch(`${API_BASE}/api/player/${encodeURIComponent(currentSyncUser.trim())}`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data && data.success && data.player) {
+              window.updateActivePlayer(
+                data.player.id,
+                data.player.username,
+                data.player.highScore
+              );
+              if (data.player.rank) {
+                localStorage.setItem("snakePlayerRank", data.player.rank.toString());
+              }
+              syncPlayerProfileUI();
+            }
+          })
+          .catch(() => {});
+      }
+
       // =====================================================================
       // CANVAS SETUP — Responsive sizing
       // =====================================================================

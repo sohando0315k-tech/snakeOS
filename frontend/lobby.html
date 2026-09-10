@@ -827,6 +827,8 @@
                 window.updateActivePlayer(player.id, player.username, player.highScore);
                 if (player.rank) {
                   localStorage.setItem("snakePlayerRank", player.rank.toString());
+                } else {
+                  localStorage.removeItem("snakePlayerRank");
                 }
                 updatePlayerCardUI(player.username, player.highScore, player.rank);
 
@@ -838,23 +840,29 @@
               }
             }
 
-            throw new Error("Server returned unsuccessful login response");
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `Server returned ${res.status}`);
           } catch (error) {
             console.warn("Online login failed, falling back to local storage:", error);
-            // Offline fallback so players can always play
-            let highScore =
-              parseInt(localStorage.getItem("snakeHighScore") || "0", 10) || 0;
+            // Offline fallback: ensure new/different users don't inherit old users' scores
+            let highScore = 0;
             let playerId = "local-" + Date.now();
 
             if (
               window.activePlayer &&
-              window.activePlayer.username === inputName
+              window.activePlayer.username &&
+              window.activePlayer.username.toLowerCase() === inputName.toLowerCase()
             ) {
-              highScore = window.activePlayer.highScore;
+              highScore = window.activePlayer.highScore || 0;
               playerId = window.activePlayer.id || playerId;
+            } else if (
+              (localStorage.getItem("snakeUsername") || "").toLowerCase() === inputName.toLowerCase()
+            ) {
+              highScore = parseInt(localStorage.getItem("snakeHighScore") || "0", 10) || 0;
             }
 
             window.updateActivePlayer(playerId, inputName, highScore);
+            localStorage.removeItem("snakePlayerRank");
             updatePlayerCardUI(inputName, highScore, "--");
 
             loginMessage.style.color = "#eab308";

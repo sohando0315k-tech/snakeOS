@@ -311,8 +311,21 @@ document.addEventListener("DOMContentLoaded", () => {
       throw new Error("Login failed");
     } catch (error) {
       console.warn("Server login offline fallback:", error);
-      let highScore = parseInt(localStorage.getItem("snakeHighScore") || "0", 10) || 0;
+      let highScore = 0;
       let playerId = "local-" + Date.now();
+
+      if (
+        window.activePlayer &&
+        window.activePlayer.username &&
+        window.activePlayer.username.toLowerCase() === inputName.toLowerCase()
+      ) {
+        highScore = window.activePlayer.highScore || 0;
+        playerId = window.activePlayer.id || playerId;
+      } else if (
+        (localStorage.getItem("snakeUsername") || "").toLowerCase() === inputName.toLowerCase()
+      ) {
+        highScore = parseInt(localStorage.getItem("snakeHighScore") || "0", 10) || 0;
+      }
 
       if (window.updateActivePlayer) {
         window.updateActivePlayer(playerId, inputName, highScore);
@@ -321,6 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("snakeUsername", inputName);
         localStorage.setItem("snakeHighScore", highScore.toString());
       }
+      localStorage.removeItem("snakePlayerRank");
       updatePlayerCardUI(inputName, highScore, "--");
 
       loginMessage.style.color = "#eab308";

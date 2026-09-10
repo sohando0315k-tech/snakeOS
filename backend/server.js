@@ -60,8 +60,17 @@ function getMemoryPlayerRank(highScore) {
 }
 
 // Middleware
-// Handle potential /frontend/ prefix from Vercel rewrites gracefully
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Safe body parsing fallback for serverless environments
 app.use((req, res, next) => {
+  if (typeof req.body === 'string' && req.body.trim()) {
+    try {
+      req.body = JSON.parse(req.body);
+    } catch (_) {}
+  }
   if (req.url.startsWith('/frontend/frontend/')) {
     return res.redirect(req.url.replace('/frontend/frontend/', '/'));
   }
@@ -155,7 +164,8 @@ app.get('/api/leaderboard', async (req, res) => {
  */
 app.post('/api/login', async (req, res) => {
   try {
-    let { username } = req.body;
+    const body = req.body || {};
+    let username = body.username;
     if (!username || typeof username !== 'string') {
       return res.status(400).json({ success: false, error: 'Username is required' });
     }
@@ -265,7 +275,9 @@ app.post('/api/login', async (req, res) => {
  */
 app.post('/api/score', async (req, res) => {
   try {
-    let { username, score } = req.body;
+    const body = req.body || {};
+    let username = body.username;
+    let score = body.score;
     if (!username) {
       return res.status(400).json({ success: false, error: 'Username is required' });
     }
