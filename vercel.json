@@ -4,7 +4,7 @@
     { "source": "/", "destination": "/lobby.html", "permanent": false }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/backend/server.js" },
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/lobby.html", "destination": "/frontend/lobby.html" },
     { "source": "/index.html", "destination": "/frontend/index.html" },
     { "source": "/lobby.css", "destination": "/frontend/lobby.css" },
